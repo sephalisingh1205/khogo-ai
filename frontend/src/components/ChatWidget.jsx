@@ -43,7 +43,8 @@ export default function ChatWidget({ wishlist = [], toggleWishlist }) {
         content: m.content
       }));
 
-      const res = await fetch('http://localhost:8000/api/chat', {
+      // Pointing to live Render URL
+      const res = await fetch('https://khogo-ai.onrender.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,7 +69,7 @@ export default function ChatWidget({ wishlist = [], toggleWishlist }) {
         ...prev,
         {
           role: 'assistant',
-          content: 'Oops! Could not connect to the backend server. Make sure FastAPI is running on port 8000.',
+          content: 'Oops! Could not connect to the backend server. Make sure the Render URL is live.',
           products: []
         }
       ]);

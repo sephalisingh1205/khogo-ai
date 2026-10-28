@@ -10,7 +10,6 @@ export default function App() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // 1. Wishlist State (persists in localStorage)
   const [showWishlist, setShowWishlist] = useState(false);
   const [wishlist, setWishlist] = useState(() => {
     const saved = localStorage.getItem('bazaar_wishlist');
@@ -25,19 +24,19 @@ export default function App() {
     setWishlist(prev => {
       const exists = prev.find(item => item.id === product.id);
       if (exists) {
-        return prev.filter(item => item.id !== product.id); // Remove
+        return prev.filter(item => item.id !== product.id); 
       }
-      return [...prev, product]; // Add
+      return [...prev, product]; 
     });
   };
 
-  // 2. Fetch Catalog
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
         const categoryParam = selectedCategory === 'All' ? '' : `?category=${selectedCategory.toLowerCase()}`;
-        const res = await fetch(`http://localhost:8000/api/products${categoryParam}`);
+        // Pointing to live Render URL
+        const res = await fetch(`https://khogo-ai.onrender.com/api/products${categoryParam}`);
         const data = await res.json();
         setProducts(data.products || []);
       } catch (err) {
@@ -53,7 +52,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Top Navbar */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
           <div 
@@ -78,7 +76,6 @@ export default function App() {
               <span className="flex items-center gap-1.5"><ShieldCheck className="w-4 h-4 text-indigo-600" /> 100% Verified</span>
             </div>
             
-            {/* Wishlist Toggle Button */}
             <button 
               onClick={() => setShowWishlist(!showWishlist)}
               className="relative p-2.5 rounded-xl border border-slate-200 hover:border-rose-200 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-500 transition-all shadow-sm"
@@ -95,7 +92,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* Hero Banner (Only show when not in wishlist mode) */}
       {!showWishlist && (
         <section className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-purple-900 text-white py-12 px-4">
           <div className="max-w-4xl mx-auto text-center space-y-4">
@@ -112,10 +108,8 @@ export default function App() {
         </section>
       )}
 
-      {/* Main Catalog */}
       <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-8 flex-1">
         
-        {/* Dynamic Header: Wishlist vs Categories */}
         {showWishlist ? (
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
             <div>
@@ -149,7 +143,6 @@ export default function App() {
           </div>
         )}
 
-        {/* Product Grid */}
         {loading && !showWishlist ? (
           <div className="py-20 flex flex-col items-center justify-center text-slate-500 gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
@@ -173,12 +166,10 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-5 text-center text-xs text-slate-400">
         © 2026 BazaarAI • Built with FastAPI, Supabase, and Open-Source LLMs for the Indian E-Commerce Market.
       </footer>
 
-      {/* Floating AI Chat Assistant */}
       <ChatWidget wishlist={wishlist} toggleWishlist={toggleWishlist} />
     </div>
   );

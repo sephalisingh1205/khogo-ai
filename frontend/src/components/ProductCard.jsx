@@ -23,8 +23,8 @@ export default function ProductCard({
       ? Math.round(((product.mrp_inr - product.price_inr) / product.mrp_inr) * 100)
       : null;
 
-  // Real-time BuyHatke resolver URL
-  const liveRedirectUrl = `http://localhost:8000/api/redirect?name=${encodeURIComponent(
+  // Real-time BuyHatke resolver URL - Pointing to live Render URL
+  const liveRedirectUrl = `https://khogo-ai.onrender.com/api/redirect?name=${encodeURIComponent(
     product.name || ''
   )}&brand=${encodeURIComponent(product.brand || '')}&platform=${encodeURIComponent(
     product.platform || 'Myntra'
@@ -37,7 +37,6 @@ export default function ProductCard({
       }`}
     >
       <div>
-        {/* Product Image & Badges */}
         <div className={`relative bg-slate-100 overflow-hidden ${compact ? 'h-36' : 'h-52'}`}>
           <img
             src={
@@ -52,7 +51,6 @@ export default function ProductCard({
             {product.platform}
           </span>
 
-          {/* Wishlist Heart Button */}
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -76,7 +74,6 @@ export default function ProductCard({
           )}
         </div>
 
-        {/* Product Info */}
         <div className={compact ? 'p-3' : 'p-4'}>
           <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
             {product.brand}
@@ -106,7 +103,6 @@ export default function ProductCard({
         </div>
       </div>
 
-      {/* Price & Buy Button */}
       <div className={`border-t border-slate-100 flex items-center justify-between ${compact ? 'px-3 py-2.5' : 'px-4 py-3'}`}>
         <div>
           <div className="flex items-baseline gap-1.5">
