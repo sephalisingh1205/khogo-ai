@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
-  ShoppingBag,
-  Truck,
-  RotateCcw,
-  ShieldCheck,
   Loader2,
   Heart,
   Search,
@@ -33,9 +29,9 @@ export default function App() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('featured'); // 'featured' | 'price_asc' | 'price_desc' | 'rating'
+  const [sortBy, setSortBy] = useState('featured');
 
-  // Theme State: 'obsidian' (Black+Gold) | 'sterling' (Silver+Slate) | 'ivory' (Light+Gold)
+  // Theme State: 'obsidian' | 'sterling' | 'ivory'
   const [themeMode, setThemeMode] = useState(() => {
     return localStorage.getItem('khogo_theme') || 'obsidian';
   });
@@ -139,31 +135,35 @@ export default function App() {
 
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-300 ${rootBg}`}>
-      {/* Top Luxury Announcement Strip */}
-      <div className="bg-gradient-to-r from-[#0E0E12] via-[#241E11] to-[#0E0E12] border-b border-[#D4AF37]/30 text-[11px] py-2 px-4 text-center text-[#F3E5AB] tracking-wider uppercase font-semibold">
-        ✦ Khogo AI Price Intelligence • Paste Any Amazon, Flipkart, Myntra or Nykaa Product to Compare & Track 6-Month Price Graphs ✦
-      </div>
-
-      {/* Main Luxury Header */}
+      {/* Main Luxury Header Synced with Favicon */}
       <header
         className={`sticky top-0 z-30 backdrop-blur-xl border-b transition-colors ${
           isLight
             ? 'bg-white/90 border-zinc-200'
-            : 'bg-[#0A0A0D]/90 border-[#D4AF37]/25'
+            : 'bg-[#08080C]/90 border-[#D4AF37]/25'
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
-          {/* Brand Logo */}
+          {/* Brand Logo Using Favicon Image */}
           <div
-            className="flex items-center gap-3.5 cursor-pointer"
+            className="flex items-center gap-4 cursor-pointer group"
             onClick={() => setShowWishlist(false)}
           >
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#D4AF37] via-[#F3E5AB] to-[#8A6D1B] flex items-center justify-center text-black shadow-lg shadow-[#D4AF37]/20">
-              <ShoppingBag className="w-5 h-5" />
+            <div className="relative w-12 h-12 rounded-2xl p-[1.5px] bg-gradient-to-tr from-purple-500 via-[#D4AF37] to-cyan-400 shadow-lg shadow-purple-500/20 group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-full h-full rounded-[14px] overflow-hidden bg-[#070709]">
+                <img
+                  src="/favicon.ico"
+                  alt="Khogo AI"
+                  className="w-full h-full object-cover scale-105"
+                />
+              </div>
             </div>
             <div>
-              <h1 className="font-harmond text-2xl sm:text-3xl font-bold tracking-wide leading-none">
-                Khogo <span className="text-[#D4AF37] italic">AI</span>
+              <h1 className="font-harmond text-3xl sm:text-4xl font-bold tracking-wide leading-none">
+                Khogo{' '}
+                <span className="italic bg-gradient-to-r from-[#D4AF37] via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                  AI
+                </span>
               </h1>
               <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-400 mt-1">
                 Black • Gold • Price Intelligence
@@ -171,9 +171,8 @@ export default function App() {
             </div>
           </div>
 
-          {/* Theme Mode Switcher + Alerts + Wishlist */}
+          {/* Theme Switcher + Alerts + Wishlist */}
           <div className="flex items-center gap-3">
-            {/* 3-Mode Luxury Theme Selector */}
             <div
               className={`hidden sm:flex items-center p-1 rounded-xl border ${
                 isLight
@@ -188,7 +187,7 @@ export default function App() {
                   <button
                     key={m.id}
                     onClick={() => setThemeMode(m.id)}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       active
                         ? 'bg-gradient-to-r from-[#D4AF37] to-[#B68D2C] text-black shadow'
                         : 'text-zinc-400 hover:text-[#D4AF37]'
@@ -201,22 +200,21 @@ export default function App() {
               })}
             </div>
 
-            {/* Active Price Alerts Badge */}
             {priceAlerts.length > 0 && (
               <button
                 onClick={() => {
-                  const first = products.find((p) => p.id === priceAlerts[0].id) || products[0];
+                  const first =
+                    products.find((p) => p.id === priceAlerts[0].id) || products[0];
                   if (first) setActiveAnalyticsProduct(first);
                 }}
-                className="px-3 py-2.5 rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37] text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                className="px-3 py-2.5 rounded-xl border border-cyan-400/40 bg-cyan-500/10 text-cyan-300 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                 title="Active Price Drop Alerts"
               >
                 <Bell className="w-4 h-4" />
-                <span>{priceAlerts.length} Alerts</span>
+                <span>{priceAlerts.length}</span>
               </button>
             )}
 
-            {/* Wishlist Button */}
             <button
               onClick={() => setShowWishlist(!showWishlist)}
               className={`relative p-2.5 rounded-xl border transition-all cursor-pointer ${
@@ -234,7 +232,7 @@ export default function App() {
                 }`}
               />
               {wishlist.length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-[#D4AF37] text-black text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center shadow">
+                <span className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#D4AF37] to-cyan-400 text-black text-[10px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center shadow">
                   {wishlist.length}
                 </span>
               )}
@@ -243,42 +241,53 @@ export default function App() {
         </div>
       </header>
 
-      {/* Editorial Hero & BuyHatke Feature Deck */}
+      {/* Clean Hero Section Synced with Gold + Neon Cyan/Purple Accents */}
       {!showWishlist && (
-        <section className="relative overflow-hidden border-b border-[#D4AF37]/20 py-14 px-4 bg-gradient-to-b from-[#111015] via-[#09090C] to-[#070709] text-white">
-          {/* Subtle Gold Radial Glow */}
-          <div className="max-w-5xl mx-auto text-center space-y-5 relative z-10">
-            <span className="inline-flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/40 text-[#F3E5AB] text-xs font-semibold px-4 py-1.5 rounded-full tracking-widest uppercase">
-              <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
+        <section
+          className={`relative overflow-hidden border-b py-12 px-4 ${
+            isLight
+              ? 'bg-gradient-to-b from-amber-50/60 via-white to-white border-zinc-200'
+              : 'bg-gradient-to-b from-[#0E0D18] via-[#09090D] to-[#070709] border-[#D4AF37]/20 text-white'
+          }`}
+        >
+          <div className="max-w-4xl mx-auto text-center space-y-4">
+            <span className="inline-flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/40 text-[#D4AF37] text-xs font-semibold px-4 py-1.5 rounded-full tracking-widest uppercase">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
               Harmond Editorial Edition • Real-Time Price Graph & Deal Scanner
             </span>
 
-            <h2 className="font-harmond text-4xl sm:text-7xl font-bold tracking-tight leading-none">
-              Never Overpay Across{' '}
-              <span className="italic bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#94A3B8] bg-clip-text text-transparent">
-                India’s Finest Stores.
+            <h2 className="font-harmond text-4xl sm:text-6xl font-bold tracking-tight leading-none">
+              Compare Prices.{' '}
+              <span className="italic bg-gradient-to-r from-[#D4AF37] via-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                Shop Smarter.
               </span>
             </h2>
 
-            <p className="text-zinc-400 text-sm sm:text-base max-w-2xl mx-auto">
-              Compare live prices across Amazon India, Flipkart, Myntra & Nykaa in one view, inspect 6-month historical price curves, and unlock verified Deal Scores.
+            <p className="text-zinc-400 text-sm sm:text-base max-w-xl mx-auto">
+              Compare real-time deals across Amazon India, Flipkart, Myntra & Nykaa with 6-month historical price graphs and verified Deal Scores.
             </p>
 
-            {/* Universal Search & URL Scanner Bar */}
+            {/* Clean Search & Deal Scanner Bar */}
             <div className="max-w-2xl mx-auto pt-2">
-              <div className="flex items-center bg-zinc-900/90 border border-[#D4AF37]/50 rounded-2xl p-1.5 shadow-2xl shadow-[#D4AF37]/10">
+              <div
+                className={`flex items-center rounded-2xl p-1.5 border shadow-xl ${
+                  isLight
+                    ? 'bg-white border-zinc-300'
+                    : 'bg-zinc-900/90 border-[#D4AF37]/40 shadow-purple-500/10'
+                }`}
+              >
                 <Search className="w-5 h-5 text-[#D4AF37] ml-3 mr-2 shrink-0" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search any product, brand, or paste a Flipkart / Amazon / Myntra link..."
-                  className="w-full bg-transparent text-sm text-white placeholder-zinc-500 focus:outline-none py-2"
+                  placeholder="Search sneakers, skincare, watches, or paste a store link..."
+                  className="w-full bg-transparent text-sm focus:outline-none py-2"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="text-xs text-zinc-400 hover:text-white px-2.5"
+                    className="text-xs text-zinc-400 hover:text-[#D4AF37] px-2.5 cursor-pointer"
                   >
                     Clear
                   </button>
@@ -289,67 +298,39 @@ export default function App() {
                       setActiveAnalyticsProduct(displayedProducts[0]);
                     }
                   }}
-                  className="bg-gradient-to-r from-[#D4AF37] to-[#B68D2C] text-black text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl shrink-0 hover:brightness-110 transition-all cursor-pointer"
+                  className="bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-cyan-400 text-black text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl shrink-0 hover:brightness-110 transition-all cursor-pointer"
                 >
-                  Scan Deal
+                  Scan Graph
                 </button>
               </div>
             </div>
 
-            {/* 4 BuyHatke-Style Interactive Feature Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-6 text-left">
+            {/* Quick Feature Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-3">
               {[
-                {
-                  title: 'Price Drop Alerts',
-                  desc: 'Set your target price and get notified the moment it drops.',
-                  icon: Bell,
-                  badge: 'Instant Tracking'
-                },
-                {
-                  title: '4-Store Price Compare',
-                  desc: 'Compare the exact same product across Amazon, Flipkart, Myntra & Nykaa.',
-                  icon: Layers,
-                  badge: 'Live Resolver'
-                },
-                {
-                  title: '6-Month Price Graph',
-                  desc: 'Inspect historical price curves and Deal Score breakups before buying.',
-                  icon: TrendingDown,
-                  badge: 'Deal Score 98'
-                },
-                {
-                  title: 'Auto Luxury Coupons',
-                  desc: 'One-click verified promo codes and bank offers for maximum savings.',
-                  icon: Tag,
-                  badge: 'Verified Codes'
-                }
-              ].map((feat, i) => {
-                const Icon = feat.icon;
+                { label: '4-Store Price Compare', icon: Layers },
+                { label: '6-Month Price Graph', icon: TrendingDown },
+                { label: 'Instant Price Drop Alerts', icon: Bell },
+                { label: 'Auto Luxury Coupons', icon: Tag }
+              ].map((pill, idx) => {
+                const Icon = pill.icon;
                 return (
-                  <div
-                    key={i}
+                  <button
+                    key={idx}
                     onClick={() => {
-                      if (displayedProducts[i]) {
-                        setActiveAnalyticsProduct(displayedProducts[i]);
+                      if (displayedProducts[idx]) {
+                        setActiveAnalyticsProduct(displayedProducts[idx]);
                       }
                     }}
-                    className="p-4 rounded-2xl bg-gradient-to-b from-zinc-900/90 to-zinc-950 border border-white/10 hover:border-[#D4AF37]/60 transition-all cursor-pointer group"
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-medium border flex items-center gap-1.5 transition-all cursor-pointer ${
+                      isLight
+                        ? 'bg-white border-zinc-200 text-zinc-700 hover:border-[#D4AF37]'
+                        : 'bg-zinc-900/70 border-white/10 text-zinc-300 hover:border-cyan-400/50 hover:text-cyan-300'
+                    }`}
                   >
-                    <div className="flex items-center justify-between mb-2.5">
-                      <span className="p-2 rounded-xl bg-[#D4AF37]/15 text-[#D4AF37] border border-[#D4AF37]/30">
-                        <Icon className="w-4 h-4" />
-                      </span>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 group-hover:text-[#D4AF37]">
-                        {feat.badge} →
-                      </span>
-                    </div>
-                    <h3 className="font-harmond text-xl font-bold text-white">
-                      {feat.title}
-                    </h3>
-                    <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                      {feat.desc}
-                    </p>
-                  </div>
+                    <Icon className="w-3.5 h-3.5 text-[#D4AF37]" />
+                    {pill.label}
+                  </button>
                 );
               })}
             </div>
@@ -363,7 +344,7 @@ export default function App() {
           <div className="flex items-center justify-between mb-8 pb-4 border-b border-[#D4AF37]/30">
             <div>
               <h2 className="font-harmond text-3xl font-bold flex items-center gap-2.5">
-                <Heart className="w-6 h-6 fill-[#D4AF37] text-[#D4AF37]" /> My Luxury Wishlist
+                <Heart className="w-6 h-6 fill-[#D4AF37] text-[#D4AF37]" /> My Saved Wishlist
               </h2>
               <p className="text-sm text-zinc-400 mt-1">
                 Bookmarked items with live price tracking & comparison.
@@ -424,7 +405,7 @@ export default function App() {
           <div className="py-24 flex flex-col items-center justify-center text-[#D4AF37] gap-3">
             <Loader2 className="w-9 h-9 animate-spin" />
             <p className="text-xs uppercase tracking-widest text-zinc-400">
-              Curating Live Luxury Catalog...
+              Loading Live Catalog...
             </p>
           </div>
         ) : displayedProducts.length === 0 ? (
@@ -449,7 +430,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Luxury Footer */}
+      {/* Footer */}
       <footer
         className={`border-t py-6 text-center text-xs ${
           isLight
@@ -460,7 +441,7 @@ export default function App() {
         <span className="font-harmond text-base text-[#D4AF37] font-bold mr-2">
           Khogo AI
         </span>
-        © 2026 • Built with FastAPI, Supabase, BuyHatke Live Link Resolution & Open-Source LLMs.
+        © 2026 • Built with FastAPI, Supabase, Live Link Resolution & Open-Source LLMs.
       </footer>
 
       {/* BuyHatke Price Comparison & 6-Month Graph Modal */}
@@ -474,7 +455,7 @@ export default function App() {
         />
       )}
 
-      {/* Multi-Mode Minimizable / Maximizable AI Concierge */}
+      {/* Minimizable / Maximizable AI Concierge */}
       <ChatWidget
         wishlist={wishlist}
         toggleWishlist={toggleWishlist}
