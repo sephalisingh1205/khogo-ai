@@ -1,10 +1,11 @@
 import os
 import json
 import re
+import time
 import urllib.parse
 from typing import List, Optional, Dict, Any
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -31,7 +32,6 @@ llm_client = OpenAI(
     base_url="https://api.groq.com/openai/v1"
 )
 
-# Open-Source Model Fallback Chain on Groq
 MODEL_CHAIN = [
     "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant",
@@ -40,9 +40,9 @@ MODEL_CHAIN = [
 
 # 3. Initialize FastAPI App
 app = FastAPI(
-    title="BazaarAI Backend API",
-    description="Crash-proof Indian E-Commerce AI Assistant & Real-Time Link Resolver",
-    version="2.1.0"
+    title="Khogo AI Backend API",
+    description="Crash-proof Indian E-Commerce AI Assistant, Link Resolver & Issue Reporter",
+    version="3.0.0"
 )
 
 app.add_middleware(
@@ -53,7 +53,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 4. Pydantic Request/Response Schemas
+# 4. In-Memory Spam & Rate Limit Protection
+RATE_LIMIT_STORE: Dict[str, List[float]] = {}
+
+def check_rate_limit(client_ip: str, max_requests: int = 15, window_sec: int = 60) -> bool:
+    """Blocks abusive spam floods from a single IP address."""
+    now = time.time()
+    timestamps = RATE_LIMIT_STORE.get(client_ip, [])
+    timestamps = [t for t in timestamps if now - t < window_sec]
+    if len(timestamps) >= max_requests:
+        RATE_LIMIT_STORE[client_ip] = timestamps
+        return False
+    timestamps.append(now)
+    RATE_LIMIT_STORE[client_ip] = timestamps
+    return True
+
+# 5. Pydantic Schemas
 class ChatMessage(BaseModel):
     role: str
     content: str
@@ -61,23 +76,32 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: Optional[List[ChatMessage]] = []
+    website_hp: Optional[str] = ""  # Hidden Honeypot field for bot spam protection
 
 class ChatResponse(BaseModel):
     reply: str
     products: List[Dict[str, Any]] = []
     mode_used: str = "ai_agent"
 
-# 5. Store Policies & Knowledge Base
+class IssueReportRequest(BaseModel):
+    product_id: Optional[str] = ""
+    product_name: str
+    platform: Optional[str] = "General"
+    issue_type: str  # 'broken_link' | 'wrong_price' | 'out_of_stock' | 'other'
+    correct_info: str
+    user_contact: Optional[str] = ""
+    website_hp: Optional[str] = ""  # Hidden Honeypot field
+
+# 6. Store Policies
 STORE_POLICIES = {
-    "return": "All items across Amazon India, Flipkart, Myntra, and Nykaa via BazaarAI support a 7-Day Easy Return & Exchange policy for unused items with original tags.",
+    "return": "All items across Amazon India, Flipkart, Myntra, and Nykaa via Khogo AI support a 7-Day Easy Return & Exchange policy for unused items with original tags.",
     "shipping": "Free standard delivery across India on orders above ₹499. Express delivery takes 1-3 business days in metro cities.",
     "payment": "We support UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, NetBanking, and Cash on Delivery (COD) on eligible pin codes.",
     "authenticity": "100% Verified Original Brands. All electronics come with standard manufacturer warranty across India."
 }
 
-# 6. Helper Functions for Product Search
+# 7. Product Search Helpers
 def normalize_tags(raw_tags: Any) -> str:
-    """Safely converts Postgres array or string tags into a flat lowercase string."""
     if isinstance(raw_tags, list):
         return " ".join(str(t) for t in raw_tags)
     if isinstance(raw_tags, str):
@@ -85,7 +109,6 @@ def normalize_tags(raw_tags: Any) -> str:
     return ""
 
 def score_products_by_keywords(items: List[Dict[str, Any]], query: str) -> List[Dict[str, Any]]:
-    """Scores and ranks a list of products against natural language query keywords."""
     if not query or not query.strip():
         return items
 
@@ -93,7 +116,7 @@ def score_products_by_keywords(items: List[Dict[str, Any]], query: str) -> List[
     stop_words = {
         "find", "me", "a", "an", "the", "under", "below", "on", "in", "for",
         "with", "and", "or", "show", "some", "best", "good", "buy", "want",
-        "need", "looking", "search", "rs", "inr", "rupees", "from", "to"
+        "need", "looking", "search", "rs", "inr", "rupees", "from", "to", "compare"
     }
     keywords = [
         w for w in query_clean.split()
@@ -122,7 +145,6 @@ def score_products_by_keywords(items: List[Dict[str, Any]], query: str) -> List[
                 score += 2
 
         cat_lower = str(item.get("category", "")).lower()
-        # Category Synonym Boosts
         if any(k in ["shoe", "shoes", "sneaker", "sneakers", "running", "footwear", "clogs", "boots"] for k in keywords) and cat_lower == "footwear":
             score += 3
         if any(k in ["hoodie", "shirt", "tshirt", "kurta", "jeans", "cargo", "cargos", "jacket", "blazer", "apparel", "clothing"] for k in keywords) and cat_lower == "apparel":
@@ -131,7 +153,7 @@ def score_products_by_keywords(items: List[Dict[str, Any]], query: str) -> List[
             score += 3
         if any(k in ["mouse", "headphone", "headphones", "earphone", "earbuds", "speaker", "keyboard", "ssd", "powerbank", "noise", "cancelling", "tech", "gaming", "electronics"] for k in keywords) and cat_lower == "electronics":
             score += 3
-        if any(k in ["watch", "sunglasses", "bag", "backpack", "wallet", "trolley", "tumbler", "accessories"] for k in keywords) and cat_lower == "accessories":
+        if any(k in ["watch", "watches", "sunglasses", "bag", "backpack", "wallet", "trolley", "tumbler", "accessories"] for k in keywords) and cat_lower == "accessories":
             score += 3
 
         if score > 0:
@@ -150,7 +172,6 @@ def search_supabase_products(
     max_price: Optional[float] = None,
     in_stock_only: bool = False
 ) -> List[Dict[str, Any]]:
-    """Queries Supabase products table with multi-tier fallback so chat searches never fail."""
     try:
         req = supabase.table("products").select("*")
 
@@ -169,12 +190,10 @@ def search_supabase_products(
         response = req.execute()
         items = response.data or []
 
-        # If a natural language query was passed (from ChatWidget), rank and return top 8
         if query and query.strip():
             ranked = score_products_by_keywords(items, query)
             return ranked[:8]
 
-        # Otherwise (for the main storefront grid), return up to 60 items
         return items[:60]
 
     except Exception as e:
@@ -182,23 +201,19 @@ def search_supabase_products(
         return []
 
 def extract_filters_from_text(text: str) -> Dict[str, Any]:
-    """Extracts budget, platform, and category directly from raw user text."""
     text_lower = text.lower()
 
-    # 1. Extract budget (e.g., "under 5000", "below ₹2000")
     max_price = None
     price_match = re.search(r"(?:under|below|less than|budget|max|₹|rs\.?\s*)\s*(\d{3,6})", text_lower)
     if price_match:
         max_price = float(price_match.group(1))
 
-    # 2. Extract platform
     platform = None
     for plat in ["myntra", "flipkart", "nykaa", "amazon"]:
         if plat in text_lower:
             platform = "Amazon India" if plat == "amazon" else plat.capitalize()
             break
 
-    # 3. Extract category
     category = None
     if any(w in text_lower for w in ["shoe", "shoes", "sneaker", "sneakers", "footwear", "boot", "boots", "clog", "clogs"]):
         category = "footwear"
@@ -208,7 +223,7 @@ def extract_filters_from_text(text: str) -> Dict[str, Any]:
         category = "beauty"
     elif any(w in text_lower for w in ["mouse", "headphone", "headphones", "earbud", "earbuds", "speaker", "keyboard", "ssd", "power bank", "powerbank", "electronics", "gaming", "noise cancelling"]):
         category = "electronics"
-    elif any(w in text_lower for w in ["bag", "backpack", "tote", "trolley", "wallet", "watch", "sunglass", "sunglasses", "tumbler", "accessories"]):
+    elif any(w in text_lower for w in ["bag", "backpack", "tote", "trolley", "wallet", "watch", "watches", "sunglass", "sunglasses", "tumbler", "accessories"]):
         category = "accessories"
 
     return {
@@ -218,12 +233,12 @@ def extract_filters_from_text(text: str) -> Dict[str, Any]:
     }
 
 # =====================================================================
-# 7. API ENDPOINTS
+# 8. API ENDPOINTS
 # =====================================================================
 
 @app.get("/")
 def health_check():
-    return {"status": "online", "service": "BazaarAI Backend v2.1"}
+    return {"status": "online", "service": "Khogo AI Backend v3.0"}
 
 @app.get("/api/products")
 def get_catalog_products(
@@ -231,7 +246,6 @@ def get_catalog_products(
     platform: Optional[str] = Query(None),
     max_price: Optional[float] = Query(None)
 ):
-    """Fetches products for the main storefront grid."""
     products = search_supabase_products(
         category=category,
         platform=platform,
@@ -240,24 +254,33 @@ def get_catalog_products(
     return {"products": products, "count": len(products)}
 
 @app.post("/api/chat", response_model=ChatResponse)
-def chat_with_assistant(req: ChatRequest):
-    """3-Tier Crash-Proof AI Shopping & Support Assistant."""
-    user_msg = req.message.strip()
+def chat_with_assistant(req: ChatRequest, request: Request):
+    # 1. Honeypot Bot Check
+    if req.website_hp and req.website_hp.strip() != "":
+        return ChatResponse(reply="Spam detected.", products=[], mode_used="spam_shield")
+
+    # 2. Rate Limit Check (Max 15 chat messages per minute per IP)
+    client_ip = request.client.host if request.client else "unknown"
+    if not check_rate_limit(f"chat:{client_ip}", max_requests=15, window_sec=60):
+        return ChatResponse(
+            reply="⏳ You are sending messages too quickly! Please wait a few seconds before asking another question.",
+            products=[],
+            mode_used="rate_limiter"
+        )
+
+    user_msg = req.message.strip()[:500]
     msg_lower = user_msg.lower()
 
-    # Check if user is asking about policies
     if any(k in msg_lower for k in ["return", "refund", "exchange", "policy", "shipping", "delivery", "cod", "payment"]):
         policy_info = "\n".join([f"- **{k.capitalize()}**: {v}" for k, v in STORE_POLICIES.items()])
         return ChatResponse(
-            reply=f"Here are our official BazaarAI customer support policies:\n\n{policy_info}\n\nHow else can I help you shop today?",
+            reply=f"Here are our official Khogo AI customer support policies:\n\n{policy_info}\n\nHow else can I help you shop today?",
             products=[],
             mode_used="policy_engine"
         )
 
-    # Extract filters & fetch matching products from Supabase with multi-step fallback
     filters = extract_filters_from_text(user_msg)
 
-    # Pass 1: Strict filter (category + platform + max_price + keywords)
     matched_products = search_supabase_products(
         query=user_msg,
         category=filters["category"],
@@ -265,7 +288,6 @@ def chat_with_assistant(req: ChatRequest):
         max_price=filters["max_price"]
     )
 
-    # Pass 2: Relax platform filter if 0 results
     if not matched_products and filters["category"]:
         matched_products = search_supabase_products(
             query=user_msg,
@@ -273,7 +295,6 @@ def chat_with_assistant(req: ChatRequest):
             max_price=filters["max_price"]
         )
 
-    # Pass 3: Relax max_price if still 0 results
     if not matched_products and (filters["category"] or filters["platform"]):
         matched_products = search_supabase_products(
             query=user_msg,
@@ -281,11 +302,9 @@ def chat_with_assistant(req: ChatRequest):
             platform=filters["platform"]
         )
 
-    # Pass 4: Pure keyword search across entire catalog
     if not matched_products:
         matched_products = search_supabase_products(query=user_msg)
 
-    # Prepare context for Groq LLM
     product_context = json.dumps([
         {
             "name": p.get("name"),
@@ -299,9 +318,9 @@ def chat_with_assistant(req: ChatRequest):
     ], indent=2)
 
     system_prompt = (
-        "You are BazaarAI, India's smart e-commerce shopping assistant covering Amazon India, Flipkart, Myntra, and Nykaa. "
+        "You are Khogo AI, India's smart luxury shopping concierge covering Amazon India, Flipkart, Myntra, and Nykaa. "
         "Keep your response friendly, concise (2-3 sentences max), and helpful. Use ₹ for prices. "
-        "Briefly highlight the best options from the matching products below, and remind the user they can click the Heart icon to save items to their Wishlist or click 'Buy' to open the live store page.\n\n"
+        "Briefly highlight the best options from the matching products below, and remind the user they can click 'Compare & Graph' to view 6-month price history or click 'Buy Now' to open the store.\n\n"
         f"Matching Catalog Products:\n{product_context}"
     )
 
@@ -310,7 +329,6 @@ def chat_with_assistant(req: ChatRequest):
         messages.append({"role": h.role, "content": h.content})
     messages.append({"role": "user", "content": user_msg})
 
-    # Try Open-Source Models on Groq
     if GROQ_API_KEY:
         for model_name in MODEL_CHAIN:
             try:
@@ -330,16 +348,15 @@ def chat_with_assistant(req: ChatRequest):
                 print(f"⚠️ Model {model_name} failed: {e}")
                 continue
 
-    # Tier-3 SQL Safe Mode Fallback (Works even if Groq API is offline)
     if matched_products:
         top = matched_products[0]
         reply_text = (
             f"I found **{len(matched_products)} great options** for you! "
             f"The top pick is the **{top.get('name')}** by {top.get('brand')} on **{top.get('platform')}** for **₹{top.get('price_inr')}**. "
-            "Tap the ❤️ icon to save items to your Wishlist or click **Buy** to open the live product page!"
+            "Tap **Graph** to inspect the 6-month price history or click **Buy Now**!"
         )
     else:
-        reply_text = "I couldn't find an exact match for that filter in our catalog right now. Try browsing our Footwear, Beauty, Electronics, or Apparel categories!"
+        reply_text = "I couldn't find an exact match for that filter right now. Try browsing our Footwear, Beauty, Electronics, or Apparel categories!"
 
     return ChatResponse(
         reply=reply_text,
@@ -348,18 +365,73 @@ def chat_with_assistant(req: ChatRequest):
     )
 
 # =====================================================================
-# 8. REAL-TIME "BUYHATKE" LIVE PRODUCT LINK RESOLVER
+# 9. DATABASE FIX / ISSUE REPORTER ENDPOINT (WITH SPAM SHIELD)
+# =====================================================================
+FALLBACK_REPORTS_LOG: List[Dict[str, Any]] = []
+
+@app.post("/api/report")
+def submit_product_fix_report(report: IssueReportRequest, request: Request):
+    """Saves user-submitted broken link or price fix reports to Supabase."""
+    # 1. Honeypot Bot Trap
+    if report.website_hp and report.website_hp.strip() != "":
+        return {"status": "ignored", "message": "Bot spam blocked."}
+
+    # 2. Rate Limit (Max 5 reports per minute per IP)
+    client_ip = request.client.host if request.client else "unknown"
+    if not check_rate_limit(f"report:{client_ip}", max_requests=5, window_sec=60):
+        raise HTTPException(status_code=429, detail="Too many reports submitted. Please wait a minute.")
+
+    clean_info = report.correct_info.strip()
+    if len(clean_info) < 4:
+        raise HTTPException(status_code=400, detail="Please provide valid details so we can fix the issue.")
+
+    payload = {
+        "product_id": str(report.product_id or ""),
+        "product_name": report.product_name.strip()[:200],
+        "platform": (report.platform or "General").strip()[:60],
+        "issue_type": report.issue_type.strip()[:60],
+        "correct_info": clean_info[:1000],
+        "user_contact": (report.user_contact or "").strip()[:120],
+        "status": "pending"
+    }
+
+    try:
+        res = supabase.table("issue_reports").insert(payload).execute()
+        return {
+            "status": "success",
+            "message": "Report saved to Supabase database! Our team will verify and update this listing.",
+            "data": res.data
+        }
+    except Exception as e:
+        print(f"⚠️ Supabase issue_reports insert fallback: {e}")
+        FALLBACK_REPORTS_LOG.append(payload)
+        return {
+            "status": "logged",
+            "message": "Report logged successfully! Thank you for helping keep Khogo AI accurate."
+        }
+
+@app.get("/api/reports")
+def list_submitted_reports():
+    """Returns recent user-submitted fix reports from Supabase."""
+    try:
+        res = supabase.table("issue_reports").select("*").order("created_at", desc=True).limit(25).execute()
+        return {"reports": res.data or []}
+    except Exception:
+        return {"reports": FALLBACK_REPORTS_LOG}
+
+# =====================================================================
+# 10. BULLETPROOF REAL-TIME LIVE PRODUCT LINK RESOLVER
 # =====================================================================
 
 PLATFORM_CONFIG = {
     "myntra": {
         "domain": "myntra.com",
         "is_product_page": lambda url: "/buy" in url,
-        "fallback": lambda q: f"https://www.myntra.com/{urllib.parse.quote(q.replace(' ', '-'))}?rawQuery={urllib.parse.quote(q)}"
+        "fallback": lambda q: f"https://www.myntra.com/{urllib.parse.quote(re.sub(r'[^a-zA-Z0-9\s]', '', q).strip().replace(' ', '-').lower())}?rawQuery={urllib.parse.quote(q)}"
     },
     "flipkart": {
         "domain": "flipkart.com",
-        "is_product_page": lambda url: "/p/" in url,
+        "is_product_page": lambda url: "/p/" in url or "pid=" in url,
         "fallback": lambda q: f"https://www.flipkart.com/search?q={urllib.parse.quote_plus(q)}"
     },
     "amazon india": {
@@ -374,56 +446,47 @@ PLATFORM_CONFIG = {
     }
 }
 
-# In-memory cache so clicking the same product twice is instant (0ms)
 RESOLVED_LINK_CACHE: Dict[str, str] = {}
 
 @app.get("/api/redirect")
 def resolve_live_product_link(
     name: str = Query(..., description="Product Name"),
     brand: str = Query("", description="Brand Name"),
-    platform: str = Query("Myntra", description="E-Commerce Platform")
+    platform: str = Query("Amazon India", description="E-Commerce Platform")
 ):
-    """
-    Real-Time 'BuyHatke' Engine:
-    Finds the exact live product page URL on Myntra, Flipkart, Amazon India, or Nykaa
-    in real-time without getting blocked by Cloudflare/Akamai.
-    """
-    cache_key = f"{platform.lower()}:{brand.lower()}:{name.lower()}"
-    if cache_key in RESOLVED_LINK_CACHE:
-        print(f"⚡ [Cache Hit] Redirecting {name} -> {RESOLVED_LINK_CACHE[cache_key]}")
-        return RedirectResponse(url=RESOLVED_LINK_CACHE[cache_key])
-
     plat_key = platform.lower().strip()
-    config = PLATFORM_CONFIG.get(plat_key, PLATFORM_CONFIG["myntra"])
-    clean_query = f"{brand} {name}".strip() if brand.lower() not in name.lower() else name.strip()
+    if "amazon" in plat_key:
+        plat_key = "amazon india"
+    elif "flipkart" in plat_key:
+        plat_key = "flipkart"
+    elif "nykaa" in plat_key:
+        plat_key = "nykaa"
+    elif "myntra" in plat_key:
+        plat_key = "myntra"
 
-    ddg_query = f"site:{config['domain']} {clean_query}"
+    config = PLATFORM_CONFIG.get(plat_key, PLATFORM_CONFIG["amazon india"])
+
+    # Clean special characters so links never break
+    clean_name = re.sub(r"[^\w\s\-]", " ", name).strip()
+    clean_brand = re.sub(r"[^\w\s\-]", " ", brand).strip()
+    clean_query = f"{clean_brand} {clean_name}".strip() if clean_brand.lower() not in clean_name.lower() else clean_name
+
+    cache_key = f"{plat_key}:{clean_query.lower()}"
+    if cache_key in RESOLVED_LINK_CACHE:
+        return RedirectResponse(url=RESOLVED_LINK_CACHE[cache_key], status_code=302)
 
     try:
         with DDGS() as ddgs:
-            results = list(ddgs.text(ddg_query, region="in-en", max_results=6))
-
-            # Pass 1: Find an exact verified product page URL (/buy, /p/, /dp/)
+            ddg_query = f"site:{config['domain']} {clean_query}"
+            results = list(ddgs.text(ddg_query, region="in-en", max_results=5))
             for r in results:
                 href = r.get("href", "")
-                if config["domain"] in href and config["is_product_page"](href):
+                if href.startswith("http") and config["domain"] in href and config["is_product_page"](href):
                     RESOLVED_LINK_CACHE[cache_key] = href
-                    print(f"✅ [Live Resolved] {clean_query} -> {href}")
-                    return RedirectResponse(url=href)
-
-            # Pass 2: Broader search if strict site: operator returned no direct product link
-            broad_results = list(ddgs.text(f"{config['domain']} {clean_query} buy online india", region="in-en", max_results=6))
-            for r in broad_results:
-                href = r.get("href", "")
-                if config["domain"] in href and config["is_product_page"](href):
-                    RESOLVED_LINK_CACHE[cache_key] = href
-                    print(f"✅ [Broad Live Resolved] {clean_query} -> {href}")
-                    return RedirectResponse(url=href)
-
+                    return RedirectResponse(url=href, status_code=302)
     except Exception as e:
-        print(f"⚠️ DuckDuckGo live resolution warning for {clean_query}: {e}")
+        print(f"⚠️ DuckDuckGo resolution fallback for {clean_query}: {e}")
 
-    # Pass 3: Specific Product Search Fallback on the target platform
     fallback_url = config["fallback"](clean_query)
-    print(f"🔄 [Direct Search Fallback] {clean_query} -> {fallback_url}")
-    return RedirectResponse(url=fallback_url)
+    RESOLVED_LINK_CACHE[cache_key] = fallback_url
+    return RedirectResponse(url=fallback_url, status_code=302)
