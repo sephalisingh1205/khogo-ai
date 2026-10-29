@@ -135,15 +135,40 @@ export default function App() {
 
   const displayedProducts = useMemo(() => {
     const baseList = activePage === 'wishlist' ? wishlist : products;
+
+    // Helper: strips dots/punctuation so "U.S. Polo" matches both "us polo" and "u.s. polo"
+    const normalizeText = (str = '') =>
+      String(str)
+        .toLowerCase()
+        .replace(/\./g, '') // "u.s." -> "us"
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
     const filtered = baseList.filter((item) => {
       if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      return (
-        (item.name || '').toLowerCase().includes(q) ||
-        (item.brand || '').toLowerCase().includes(q) ||
-        (item.platform || '').toLowerCase().includes(q) ||
-        (item.category || '').toLowerCase().includes(q)
+
+      const cleanQuery = normalizeText(searchQuery);
+      const queryWords = cleanQuery.split(' ').filter(Boolean);
+      if (queryWords.length === 0) return true;
+
+      const tagsText = Array.isArray(item.tags)
+        ? item.tags.join(' ')
+        : String(item.tags || '');
+
+      const searchablePool = normalizeText(
+        `${item.name || ''} ${item.brand || ''} ${item.platform || ''} ${item.category || ''} ${tagsText}`
       );
+
+      // Every word typed in the search bar must appear somewhere in the product's normalized text
+      return queryWords.every((word) => {
+        if (searchablePool.includes(word)) return true;
+        // Handle simple plural/singular (e.g., "shirts" matches "shirt")
+        if (word.endsWith('s') && word.length > 3 && searchablePool.includes(word.slice(0, -1))) {
+          return true;
+        }
+        return false;
+      });
     });
 
     const sorted = [...filtered];
