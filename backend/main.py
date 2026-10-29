@@ -490,3 +490,16 @@ def resolve_live_product_link(
     fallback_url = config["fallback"](clean_query)
     RESOLVED_LINK_CACHE[cache_key] = fallback_url
     return RedirectResponse(url=fallback_url, status_code=302)
+
+@app.post("/api/admin/resolve-report")
+def resolve_issue_report(report_id: str, action: str = "approve"):
+    """Allows admin to approve or dismiss user-submitted database fix reports."""
+    try:
+        if action == "approve":
+            supabase.table("issue_reports").update({"status": "resolved"}).eq("id", report_id).execute()
+            return {"status": "success", "message": "Report approved and marked as resolved in Supabase!"}
+        else:
+            supabase.table("issue_reports").delete().eq("id", report_id).execute()
+            return {"status": "success", "message": "Report dismissed and removed."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

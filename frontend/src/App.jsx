@@ -733,3 +733,23 @@ export default function App() {
     </div>
   );
 }
+
+// Voice Search Handler using Browser SpeechRecognition API
+  const startVoiceSearch = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser. Try Chrome or Edge.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-IN'; // Supports Indian English & Hinglish
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      const speechText = event.results[0][0].transcript;
+      setSearchQuery(speechText);
+    };
+
+    recognition.start();
+  };
