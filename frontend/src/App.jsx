@@ -47,6 +47,7 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchingLive, setFetchingLive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('featured');
   const [isListening, setIsListening] = useState(false);
@@ -150,6 +151,33 @@ export default function App() {
     };
 
     recognition.start();
+  };
+
+  // Live Store Scraper & AI Auto-Categorizer Trigger
+  const handleLiveWebDiscovery = async () => {
+    if (!searchQuery.trim() || fetchingLive) return;
+    setFetchingLive(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/live-ingest?query=${encodeURIComponent(
+          searchQuery.trim()
+        )}`,
+        { method: 'POST' }
+      );
+      const data = await res.json();
+      if (data.products && data.products.length > 0) {
+        setProducts((prev) => [...data.products, ...prev]);
+        setSelectedCategory('All');
+      } else {
+        alert(
+          'Could not verify live stock for that query right now. Try a more specific brand or product name!'
+        );
+      }
+    } catch (err) {
+      console.error('Live discovery failed:', err);
+    } finally {
+      setFetchingLive(false);
+    }
   };
 
   useEffect(() => {
@@ -484,7 +512,7 @@ export default function App() {
               <div className="max-w-4xl mx-auto text-center space-y-4">
                 <span className="inline-flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/40 text-[#D4AF37] text-[10px] sm:text-xs font-semibold px-3.5 py-1.5 rounded-full tracking-widest uppercase">
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  Khojo AI • Voice Search, Price Graph & Versus Battle Mode
+                  Khojo AI • Live Web Scraper, AI Auto-Categorizer & Versus Mode
                 </span>
 
                 <h2 className="font-harmond text-4xl sm:text-6xl font-bold tracking-tight leading-none">
@@ -495,7 +523,7 @@ export default function App() {
                 </h2>
 
                 <p className="text-zinc-400 text-xs sm:text-base max-w-xl mx-auto px-2">
-                  Compare real-time deals across Amazon India, Flipkart, Myntra & Nykaa with 6-month historical price graphs, voice search, and AI head-to-head product battles.
+                  Compare real-time deals across Amazon India, Flipkart, Myntra & Nykaa with 6-month historical price graphs, live store scraping, and AI auto-categorization.
                 </p>
 
                 <div className="max-w-2xl mx-auto pt-2">
@@ -549,11 +577,15 @@ export default function App() {
                       onClick={() => {
                         if (displayedProducts[0]) {
                           setActiveAnalyticsProduct(displayedProducts[0]);
+                        } else if (searchQuery.trim()) {
+                          handleLiveWebDiscovery();
                         }
                       }}
                       className="bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-cyan-400 text-black text-xs font-bold uppercase tracking-wider px-5 py-2.5 rounded-xl shrink-0 hover:brightness-110 transition-all cursor-pointer"
                     >
-                      Scan Graph
+                      {displayedProducts.length === 0 && searchQuery.trim()
+                        ? 'Fetch Live'
+                        : 'Scan Graph'}
                     </button>
                   </div>
                 </div>
@@ -682,19 +714,38 @@ export default function App() {
                 </p>
               </div>
             ) : displayedProducts.length === 0 ? (
-              <div className="py-20 text-center text-zinc-400 text-sm space-y-3">
-                <p>
+              <div className="py-20 text-center text-zinc-400 text-sm space-y-4">
+                <p className="max-w-md mx-auto leading-relaxed">
                   {activePage === 'wishlist'
                     ? 'Your wishlist is empty. Tap the heart icon on any product to save it!'
-                    : 'No matching products found for that filter.'}
+                    : `No local vault items matched "${searchQuery}". Want Khojo AI to scrape it live from Amazon India, Flipkart, Myntra & Nykaa and auto-categorize it?`}
                 </p>
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="px-4 py-2 rounded-xl bg-[#D4AF37] text-black text-xs font-bold uppercase tracking-wider cursor-pointer"
-                  >
-                    Reset Search Filter
-                  </button>
+                {searchQuery && activePage !== 'wishlist' && (
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <button
+                      onClick={handleLiveWebDiscovery}
+                      disabled={fetchingLive}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-cyan-400 text-black text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-lg hover:brightness-110 transition-all"
+                    >
+                      {fetchingLive ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Scraping Live Stores & Auto-Categorizing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Fetch "{searchQuery}" Live & Auto-Categorize
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="px-4 py-2.5 rounded-xl border border-white/15 bg-zinc-900 text-zinc-300 text-xs font-bold uppercase tracking-wider cursor-pointer hover:border-[#D4AF37]"
+                    >
+                      Reset Filter
+                    </button>
+                  </div>
                 )}
               </div>
             ) : (
