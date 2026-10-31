@@ -12,16 +12,16 @@ import {
   Award,
   BarChart3
 } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const PLATFORMS = ['Amazon India', 'Flipkart', 'Myntra', 'Nykaa'];
 
 const COUPONS = [
-  { code: 'KHOGOGOLD10', desc: 'Extra 10% OFF via Luxury UPI Checkout', savings: '₹450' },
+  { code: 'KHOJOGOLD10', desc: 'Extra 10% OFF via Luxury UPI Checkout', savings: '₹450' },
   { code: 'HATKEDEAL500', desc: 'Flat ₹500 Instant Bank Discount on Cards', savings: '₹500' },
   { code: 'FIRSTLUXE', desc: 'Free Priority Express Shipping + 5% Cashback', savings: '₹250' }
 ];
 
-// Deterministic hash helper so prices and graphs stay consistent per product
 function getSeed(str = '') {
   let h = 0;
   for (let i = 0; i < str.length; i++) {
@@ -34,12 +34,11 @@ export default function PriceAnalyticsModal({
   product,
   onClose,
   themeMode = 'obsidian',
-  priceAlerts = [],
   onSaveAlert
 }) {
   if (!product) return null;
 
-  const [activeTab, setActiveTab] = useState('scanner'); // 'scanner' | 'graph' | 'coupons'
+  const [activeTab, setActiveTab] = useState('scanner');
   const [copiedCode, setCopiedCode] = useState('');
   const [targetPrice, setTargetPrice] = useState(
     Math.round((product.price_inr || 1500) * 0.9)
@@ -50,16 +49,15 @@ export default function PriceAnalyticsModal({
   const basePrice = Number(product.price_inr) || 1999;
   const mrpPrice = Number(product.mrp_inr) || Math.round(basePrice * 1.35);
 
-  // 1. Generate realistic multi-store comparison prices
   const storeComparisons = useMemo(() => {
     return PLATFORMS.map((plat, idx) => {
       const isPrimary = plat.toLowerCase() === (product.platform || '').toLowerCase();
-      const variance = ((seed + idx * 17) % 14) - 4; // -4% to +9%
+      const variance = ((seed + idx * 17) % 14) - 4;
       const computedPrice = isPrimary
         ? basePrice
         : Math.max(299, Math.round((basePrice * (100 + variance)) / 100));
 
-      const redirectUrl = `https://khogo-ai.onrender.com/api/redirect?name=${encodeURIComponent(
+      const redirectUrl = `${API_BASE_URL}/api/redirect?name=${encodeURIComponent(
         product.name || ''
       )}&brand=${encodeURIComponent(product.brand || '')}&platform=${encodeURIComponent(plat)}`;
 
@@ -78,9 +76,8 @@ export default function PriceAnalyticsModal({
 
   const lowestStore = storeComparisons[0];
 
-  // 2. Generate 6-Month Historical Price Points for SVG Line Chart
   const priceHistory = useMemo(() => {
-    const months = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct (Now)'];
+    const months = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov (Now)'];
     const multipliers = [
       1.22,
       1.15 + ((seed % 7) * 0.01),
@@ -101,13 +98,11 @@ export default function PriceAnalyticsModal({
     priceHistory.reduce((acc, d) => acc + d.price, 0) / priceHistory.length
   );
 
-  // 3. Calculate BuyHatke-Style Deal Score (82 - 98)
   const dealScore = useMemo(() => {
     const discountPct = Math.round(((mrpPrice - lowestStore.price) / mrpPrice) * 100);
     return Math.min(99, Math.max(78, 72 + Math.round(discountPct * 0.6)));
   }, [mrpPrice, lowestStore]);
 
-  // SVG Chart Coordinates (Width 520, Height 170)
   const svgPoints = priceHistory
     .map((pt, idx) => {
       const x = 40 + idx * 88;
@@ -150,7 +145,6 @@ export default function PriceAnalyticsModal({
             : 'bg-[#0B0B0E] border-[#D4AF37]/40 text-zinc-100 shadow-[#D4AF37]/10'
         }`}
       >
-        {/* Top Metallic Gold Header Bar */}
         <div className="bg-gradient-to-r from-[#141419] via-[#1E1B14] to-[#141419] border-b border-[#D4AF37]/30 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="p-2 rounded-xl bg-[#D4AF37]/15 border border-[#D4AF37]/40 text-[#D4AF37]">
@@ -158,7 +152,7 @@ export default function PriceAnalyticsModal({
             </span>
             <div>
               <span className="text-[10px] uppercase tracking-[0.25em] text-[#D4AF37] font-semibold block">
-                Khogo AI • BuyHatke Intelligence Engine
+                Khojo AI • BuyHatke Intelligence Engine
               </span>
               <h3 className="font-harmond text-2xl font-bold text-white tracking-wide line-clamp-1">
                 {product.name}
@@ -173,9 +167,7 @@ export default function PriceAnalyticsModal({
           </button>
         </div>
 
-        {/* Modal Body */}
         <div className="grid grid-cols-1 lg:grid-cols-12 max-h-[82vh] overflow-y-auto">
-          {/* Left Column: Product Overview & Live Multi-Store Price Compare */}
           <div className="lg:col-span-5 p-6 border-b lg:border-b-0 lg:border-r border-[#D4AF37]/20 flex flex-col justify-between">
             <div>
               <div className="relative h-48 rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 mb-4">
@@ -237,7 +229,6 @@ export default function PriceAnalyticsModal({
               </div>
             </div>
 
-            {/* Set Price Drop Alert Box */}
             <form
               onSubmit={handleCreateAlert}
               className={`p-4 rounded-2xl border ${
@@ -274,10 +265,8 @@ export default function PriceAnalyticsModal({
             </form>
           </div>
 
-          {/* Right Column: Interactive Tabs (Deal Scanner | 6M Price Graph | Auto Coupons) */}
           <div className="lg:col-span-7 p-6 flex flex-col justify-between">
             <div>
-              {/* Navigation Tabs */}
               <div className="grid grid-cols-3 gap-2 p-1 rounded-2xl bg-zinc-900/90 border border-white/10 mb-6">
                 {[
                   { id: 'scanner', label: 'Deal Scanner', icon: Award },
@@ -302,13 +291,12 @@ export default function PriceAnalyticsModal({
                 })}
               </div>
 
-              {/* TAB 1: BUYHATKE DEAL SCANNER */}
               {activeTab === 'scanner' && (
                 <div className="space-y-5 animate-fadeIn">
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-2xl bg-gradient-to-br from-[#171510] to-[#0D0D11] border border-[#D4AF37]/30">
                     <div className="space-y-2">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        <Sparkles className="w-3.5 h-3.5" /> Epic Khogo Steal 🚀
+                        <Sparkles className="w-3.5 h-3.5" /> Epic Khojo Steal 🚀
                       </span>
                       <h4 className="font-harmond text-3xl font-bold text-white">
                         Lowest Price Recorded
@@ -318,7 +306,6 @@ export default function PriceAnalyticsModal({
                       </p>
                     </div>
 
-                    {/* Speedometer Deal Score Gauge */}
                     <div className="flex flex-col items-center shrink-0">
                       <div className="relative w-32 h-20 flex items-end justify-center overflow-hidden">
                         <svg viewBox="0 0 120 70" className="w-full h-full">
@@ -351,7 +338,6 @@ export default function PriceAnalyticsModal({
                     </div>
                   </div>
 
-                  {/* Deal Score Breakup Table */}
                   <div className="rounded-2xl border border-white/10 p-4 space-y-3 bg-zinc-900/40">
                     <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-zinc-400 border-b border-white/10 pb-2">
                       <span>Deal Score Breakup</span>
@@ -386,7 +372,6 @@ export default function PriceAnalyticsModal({
                 </div>
               )}
 
-              {/* TAB 2: 6-MONTH INTERACTIVE SVG PRICE HISTORY GRAPH */}
               {activeTab === 'graph' && (
                 <div className="space-y-4 animate-fadeIn">
                   <div className="grid grid-cols-3 gap-3">
@@ -419,10 +404,10 @@ export default function PriceAnalyticsModal({
                   <div className="p-4 rounded-2xl bg-[#070709] border border-[#D4AF37]/30">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-xs font-semibold text-zinc-300">
-                        6-Month Price Trajectory (May – Oct 2026)
+                        6-Month Price Trajectory (Jun – Nov 2026)
                       </span>
                       <span className="text-[11px] text-[#D4AF37] font-semibold">
-                        Live BuyHatke Curve
+                        Live Khojo Curve
                       </span>
                     </div>
 
@@ -434,7 +419,6 @@ export default function PriceAnalyticsModal({
                         </linearGradient>
                       </defs>
 
-                      {/* Horizontal Grid Lines */}
                       {[35, 75, 115, 145].map((y, idx) => (
                         <line
                           key={idx}
@@ -448,13 +432,11 @@ export default function PriceAnalyticsModal({
                         />
                       ))}
 
-                      {/* Shaded Gold Area Under Curve */}
                       <polygon
                         points={`40,150 ${svgPoints} 480,150`}
                         fill="url(#goldArea)"
                       />
 
-                      {/* Metallic Gold Price Line */}
                       <polyline
                         fill="none"
                         stroke="#D4AF37"
@@ -462,7 +444,6 @@ export default function PriceAnalyticsModal({
                         points={svgPoints}
                       />
 
-                      {/* Data Nodes & Labels */}
                       {priceHistory.map((pt, idx) => {
                         const x = 40 + idx * 88;
                         const range = Math.max(1, maxGraphPrice - minGraphPrice);
@@ -506,7 +487,6 @@ export default function PriceAnalyticsModal({
                 </div>
               )}
 
-              {/* TAB 3: AUTO COUPONS */}
               {activeTab === 'coupons' && (
                 <div className="space-y-3 animate-fadeIn">
                   <p className="text-xs text-zinc-400">
@@ -549,7 +529,6 @@ export default function PriceAnalyticsModal({
               )}
             </div>
 
-            {/* Bottom Call To Action */}
             <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs text-zinc-400">
                 <ShieldCheck className="w-4 h-4 text-[#D4AF37]" />

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Star, ExternalLink, Heart, BarChart2, Sparkles, Wrench } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const PLATFORM_BADGES = {
   'Amazon India': 'bg-zinc-950/90 text-[#D4AF37] border border-[#D4AF37]/50',
@@ -32,7 +33,7 @@ export default function ProductCard({
 
   const dealScore = Math.min(99, Math.max(82, 76 + Math.round(discount * 0.5)));
 
-  const liveRedirectUrl = `https://khogo-ai.onrender.com/api/redirect?name=${encodeURIComponent(
+  const liveRedirectUrl = `${API_BASE_URL}/api/redirect?name=${encodeURIComponent(
     product.name || ''
   )}&brand=${encodeURIComponent(product.brand || '')}&platform=${encodeURIComponent(
     product.platform || 'Amazon India'
@@ -74,7 +75,7 @@ export default function ProductCard({
 
           <button
             onClick={() => onOpenAnalytics && onOpenAnalytics(product)}
-            title="View BuyHatke Deal Score & Price Graph"
+            title="View Khojo AI Deal Score & Price Graph"
             className="absolute bottom-2.5 left-2.5 px-2.5 py-1 rounded-lg bg-black/85 backdrop-blur-md border border-[#D4AF37]/60 text-[#D4AF37] text-[10px] font-bold flex items-center gap-1 hover:bg-[#D4AF37] hover:text-black transition-all cursor-pointer"
           >
             <Sparkles className="w-3 h-3" />

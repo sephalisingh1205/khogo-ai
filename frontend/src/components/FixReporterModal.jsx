@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { X, Wrench, ShieldAlert, CheckCircle2, Loader2, Link2, IndianRupee, AlertTriangle } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
 const ISSUE_TYPES = [
   { id: 'broken_link', label: 'Broken / Wrong Store Link', icon: Link2 },
@@ -14,14 +15,13 @@ export default function FixReporterModal({ product, onClose, themeMode = 'obsidi
   const [issueType, setIssueType] = useState('broken_link');
   const [correctInfo, setCorrectInfo] = useState('');
   const [userContact, setUserContact] = useState('');
-  const [websiteHp, setWebsiteHp] = useState(''); // Hidden Honeypot for bots
+  const [websiteHp, setWebsiteHp] = useState('');
   const [humanAnswer, setHumanAnswer] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Simple math verification for anti-spam
   const challenge = useMemo(() => {
     const a = Math.floor(Math.random() * 6) + 2;
     const b = Math.floor(Math.random() * 5) + 1;
@@ -34,14 +34,12 @@ export default function FixReporterModal({ product, onClose, themeMode = 'obsidi
     e.preventDefault();
     setErrorMsg('');
 
-    // 1. Check local cooldown (prevents spam clicking)
-    const lastReportTime = Number(localStorage.getItem('khogo_last_report_ts') || 0);
+    const lastReportTime = Number(localStorage.getItem('khojo_last_report_ts') || 0);
     if (Date.now() - lastReportTime < 15000) {
       setErrorMsg('Please wait 15 seconds between submitting reports.');
       return;
     }
 
-    // 2. Check math challenge
     if (Number(humanAnswer) !== challenge.sum) {
       setErrorMsg('Incorrect security math answer. Please verify you are human.');
       return;
@@ -54,7 +52,7 @@ export default function FixReporterModal({ product, onClose, themeMode = 'obsidi
 
     setSubmitting(true);
     try {
-      const res = await fetch('https://khogo-ai.onrender.com/api/report', {
+      const res = await fetch(`${API_BASE_URL}/api/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,12 +71,11 @@ export default function FixReporterModal({ product, onClose, themeMode = 'obsidi
         throw new Error(data.detail || 'Could not submit report');
       }
 
-      localStorage.setItem('khogo_last_report_ts', String(Date.now()));
-      setStatusMsg(data.message || 'Thank you! Your fix report has been saved to our database.');
+      localStorage.setItem('khojo_last_report_ts', String(Date.now()));
+      setStatusMsg(data.message || 'Thank you! Your fix report has been saved to our Khojo AI database.');
       setCorrectInfo('');
     } catch (err) {
-      // Fallback local storage queue if Render server is waking up
-      const savedQueue = JSON.parse(localStorage.getItem('khogo_offline_reports') || '[]');
+      const savedQueue = JSON.parse(localStorage.getItem('khojo_offline_reports') || '[]');
       savedQueue.push({
         product_name: productName,
         platform,
@@ -86,8 +83,8 @@ export default function FixReporterModal({ product, onClose, themeMode = 'obsidi
         correct_info: correctInfo,
         created_at: new Date().toISOString()
       });
-      localStorage.setItem('khogo_offline_reports', JSON.stringify(savedQueue));
-      setStatusMsg('Report queued and recorded! Our team will update the database shortly.');
+      localStorage.setItem('khojo_offline_reports', JSON.stringify(savedQueue));
+      setStatusMsg('Report queued and recorded! Our team will update the Khojo AI database shortly.');
     } finally {
       setSubmitting(false);
     }
@@ -102,7 +99,6 @@ export default function FixReporterModal({ product, onClose, themeMode = 'obsidi
             : 'bg-[#0B0B0E] border-[#D4AF37]/40 text-zinc-100'
         }`}
       >
-        {/* Header */}
         <div className="bg-gradient-to-r from-[#141419] via-[#1F1A10] to-[#141419] border-b border-[#D4AF37]/30 px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="p-2 rounded-xl bg-[#D4AF37]/15 border border-[#D4AF37]/40 text-[#D4AF37]">
@@ -110,7 +106,7 @@ export default function FixReporterModal({ product, onClose, themeMode = 'obsidi
             </span>
             <div>
               <span className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-semibold block">
-                Database Community Fix Reporter
+                Khojo AI Community Fix Reporter
               </span>
               <h3 className="font-harmond text-2xl font-bold text-white">
                 Report Broken Link or Price Fix
@@ -141,7 +137,6 @@ export default function FixReporterModal({ product, onClose, themeMode = 'obsidi
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-            {/* Hidden Honeypot Input (Invisible to humans, traps spam bots) */}
             <input
               type="text"
               name="website_hp"
@@ -233,7 +228,6 @@ export default function FixReporterModal({ product, onClose, themeMode = 'obsidi
               />
             </div>
 
-            {/* Spam Protection Challenge & Optional Contact */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
               <div>
                 <label className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1 mb-1">

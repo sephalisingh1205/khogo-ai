@@ -40,7 +40,7 @@ MODEL_CHAIN = [
 
 # 3. Initialize FastAPI App
 app = FastAPI(
-    title="Khogo AI Backend API",
+    title="Khojo AI Backend API",
     description="Crash-proof Indian E-Commerce AI Assistant, Link Resolver & Issue Reporter",
     version="3.0.0"
 )
@@ -57,7 +57,6 @@ app.add_middleware(
 RATE_LIMIT_STORE: Dict[str, List[float]] = {}
 
 def check_rate_limit(client_ip: str, max_requests: int = 15, window_sec: int = 60) -> bool:
-    """Blocks abusive spam floods from a single IP address."""
     now = time.time()
     timestamps = RATE_LIMIT_STORE.get(client_ip, [])
     timestamps = [t for t in timestamps if now - t < window_sec]
@@ -76,7 +75,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: Optional[List[ChatMessage]] = []
-    website_hp: Optional[str] = ""  # Hidden Honeypot field for bot spam protection
+    website_hp: Optional[str] = ""
 
 class ChatResponse(BaseModel):
     reply: str
@@ -87,14 +86,14 @@ class IssueReportRequest(BaseModel):
     product_id: Optional[str] = ""
     product_name: str
     platform: Optional[str] = "General"
-    issue_type: str  # 'broken_link' | 'wrong_price' | 'out_of_stock' | 'other'
+    issue_type: str
     correct_info: str
     user_contact: Optional[str] = ""
-    website_hp: Optional[str] = ""  # Hidden Honeypot field
+    website_hp: Optional[str] = ""
 
 # 6. Store Policies
 STORE_POLICIES = {
-    "return": "All items across Amazon India, Flipkart, Myntra, and Nykaa via Khogo AI support a 7-Day Easy Return & Exchange policy for unused items with original tags.",
+    "return": "All items across Amazon India, Flipkart, Myntra, and Nykaa via Khojo AI support a 7-Day Easy Return & Exchange policy for unused items with original tags.",
     "shipping": "Free standard delivery across India on orders above ₹499. Express delivery takes 1-3 business days in metro cities.",
     "payment": "We support UPI (GPay, PhonePe, Paytm), Credit/Debit Cards, NetBanking, and Cash on Delivery (COD) on eligible pin codes.",
     "authenticity": "100% Verified Original Brands. All electronics come with standard manufacturer warranty across India."
@@ -194,10 +193,10 @@ def search_supabase_products(
             ranked = score_products_by_keywords(items, query)
             return ranked[:8]
 
-        return items[:60]
+        return items[:200]
 
     except Exception as e:
-        print(f"❌ Supabase Search Error: {e}")
+        print(f"Supabase Search Error: {e}")
         return []
 
 def extract_filters_from_text(text: str) -> Dict[str, Any]:
@@ -232,13 +231,10 @@ def extract_filters_from_text(text: str) -> Dict[str, Any]:
         "category": category
     }
 
-# =====================================================================
-# 8. API ENDPOINTS
-# =====================================================================
-
+# 8. API Endpoints
 @app.get("/")
 def health_check():
-    return {"status": "online", "service": "Khogo AI Backend v3.0"}
+    return {"status": "online", "service": "Khojo AI Backend v3.0"}
 
 @app.get("/api/products")
 def get_catalog_products(
@@ -255,11 +251,9 @@ def get_catalog_products(
 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat_with_assistant(req: ChatRequest, request: Request):
-    # 1. Honeypot Bot Check
     if req.website_hp and req.website_hp.strip() != "":
         return ChatResponse(reply="Spam detected.", products=[], mode_used="spam_shield")
 
-    # 2. Rate Limit Check (Max 15 chat messages per minute per IP)
     client_ip = request.client.host if request.client else "unknown"
     if not check_rate_limit(f"chat:{client_ip}", max_requests=15, window_sec=60):
         return ChatResponse(
@@ -274,7 +268,7 @@ def chat_with_assistant(req: ChatRequest, request: Request):
     if any(k in msg_lower for k in ["return", "refund", "exchange", "policy", "shipping", "delivery", "cod", "payment"]):
         policy_info = "\n".join([f"- **{k.capitalize()}**: {v}" for k, v in STORE_POLICIES.items()])
         return ChatResponse(
-            reply=f"Here are our official Khogo AI customer support policies:\n\n{policy_info}\n\nHow else can I help you shop today?",
+            reply=f"Here are our official Khojo AI customer support policies:\n\n{policy_info}\n\nHow else can I help you shop today?",
             products=[],
             mode_used="policy_engine"
         )
@@ -318,9 +312,9 @@ def chat_with_assistant(req: ChatRequest, request: Request):
     ], indent=2)
 
     system_prompt = (
-        "You are Khogo AI, India's smart luxury shopping concierge covering Amazon India, Flipkart, Myntra, and Nykaa. "
+        "You are Khojo AI, India's smart luxury shopping concierge covering Amazon India, Flipkart, Myntra, and Nykaa. "
         "Keep your response friendly, concise (2-3 sentences max), and helpful. Use ₹ for prices. "
-        "Briefly highlight the best options from the matching products below, and remind the user they can click 'Compare & Graph' to view 6-month price history or click 'Buy Now' to open the store.\n\n"
+        "Briefly highlight the best options from the matching products below, and remind the user they can click 'Compare' to view 6-month price history or click 'Buy Now' to open the store.\n\n"
         f"Matching Catalog Products:\n{product_context}"
     )
 
@@ -345,7 +339,7 @@ def chat_with_assistant(req: ChatRequest, request: Request):
                     mode_used=model_name
                 )
             except Exception as e:
-                print(f"⚠️ Model {model_name} failed: {e}")
+                print(f"Model {model_name} failed: {e}")
                 continue
 
     if matched_products:
@@ -353,7 +347,7 @@ def chat_with_assistant(req: ChatRequest, request: Request):
         reply_text = (
             f"I found **{len(matched_products)} great options** for you! "
             f"The top pick is the **{top.get('name')}** by {top.get('brand')} on **{top.get('platform')}** for **₹{top.get('price_inr')}**. "
-            "Tap **Graph** to inspect the 6-month price history or click **Buy Now**!"
+            "Tap **Compare** to inspect the 6-month price history or click **Buy Now**!"
         )
     else:
         reply_text = "I couldn't find an exact match for that filter right now. Try browsing our Footwear, Beauty, Electronics, or Apparel categories!"
@@ -364,19 +358,14 @@ def chat_with_assistant(req: ChatRequest, request: Request):
         mode_used="tier3_sql_safe_mode"
     )
 
-# =====================================================================
-# 9. DATABASE FIX / ISSUE REPORTER ENDPOINT (WITH SPAM SHIELD)
-# =====================================================================
+# 9. Database Fix / Issue Reporter Endpoints
 FALLBACK_REPORTS_LOG: List[Dict[str, Any]] = []
 
 @app.post("/api/report")
 def submit_product_fix_report(report: IssueReportRequest, request: Request):
-    """Saves user-submitted broken link or price fix reports to Supabase."""
-    # 1. Honeypot Bot Trap
     if report.website_hp and report.website_hp.strip() != "":
         return {"status": "ignored", "message": "Bot spam blocked."}
 
-    # 2. Rate Limit (Max 5 reports per minute per IP)
     client_ip = request.client.host if request.client else "unknown"
     if not check_rate_limit(f"report:{client_ip}", max_requests=5, window_sec=60):
         raise HTTPException(status_code=429, detail="Too many reports submitted. Please wait a minute.")
@@ -403,26 +392,34 @@ def submit_product_fix_report(report: IssueReportRequest, request: Request):
             "data": res.data
         }
     except Exception as e:
-        print(f"⚠️ Supabase issue_reports insert fallback: {e}")
+        print(f"Supabase issue_reports insert fallback: {e}")
         FALLBACK_REPORTS_LOG.append(payload)
         return {
             "status": "logged",
-            "message": "Report logged successfully! Thank you for helping keep Khogo AI accurate."
+            "message": "Report logged successfully! Thank you for helping keep Khojo AI accurate."
         }
 
 @app.get("/api/reports")
 def list_submitted_reports():
-    """Returns recent user-submitted fix reports from Supabase."""
     try:
         res = supabase.table("issue_reports").select("*").order("created_at", desc=True).limit(25).execute()
         return {"reports": res.data or []}
     except Exception:
         return {"reports": FALLBACK_REPORTS_LOG}
 
-# =====================================================================
-# 10. BULLETPROOF REAL-TIME LIVE PRODUCT LINK RESOLVER
-# =====================================================================
+@app.post("/api/admin/resolve-report")
+def resolve_issue_report(report_id: str, action: str = "approve"):
+    try:
+        if action == "approve":
+            supabase.table("issue_reports").update({"status": "resolved"}).eq("id", report_id).execute()
+            return {"status": "success", "message": "Report approved and marked as resolved in Supabase!"}
+        else:
+            supabase.table("issue_reports").delete().eq("id", report_id).execute()
+            return {"status": "success", "message": "Report dismissed and removed."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
+# 10. Real-Time Live Product Link Resolver
 PLATFORM_CONFIG = {
     "myntra": {
         "domain": "myntra.com",
@@ -466,7 +463,6 @@ def resolve_live_product_link(
 
     config = PLATFORM_CONFIG.get(plat_key, PLATFORM_CONFIG["amazon india"])
 
-    # Clean special characters so links never break
     clean_name = re.sub(r"[^\w\s\-]", " ", name).strip()
     clean_brand = re.sub(r"[^\w\s\-]", " ", brand).strip()
     clean_query = f"{clean_brand} {clean_name}".strip() if clean_brand.lower() not in clean_name.lower() else clean_name
@@ -485,21 +481,8 @@ def resolve_live_product_link(
                     RESOLVED_LINK_CACHE[cache_key] = href
                     return RedirectResponse(url=href, status_code=302)
     except Exception as e:
-        print(f"⚠️ DuckDuckGo resolution fallback for {clean_query}: {e}")
+        print(f"DuckDuckGo resolution fallback for {clean_query}: {e}")
 
     fallback_url = config["fallback"](clean_query)
     RESOLVED_LINK_CACHE[cache_key] = fallback_url
     return RedirectResponse(url=fallback_url, status_code=302)
-
-@app.post("/api/admin/resolve-report")
-def resolve_issue_report(report_id: str, action: str = "approve"):
-    """Allows admin to approve or dismiss user-submitted database fix reports."""
-    try:
-        if action == "approve":
-            supabase.table("issue_reports").update({"status": "resolved"}).eq("id", report_id).execute()
-            return {"status": "success", "message": "Report approved and marked as resolved in Supabase!"}
-        else:
-            supabase.table("issue_reports").delete().eq("id", report_id).execute()
-            return {"status": "success", "message": "Report dismissed and removed."}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}

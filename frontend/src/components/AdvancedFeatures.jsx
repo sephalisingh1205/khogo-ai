@@ -8,8 +8,8 @@ import {
   Sparkles,
   Lock
 } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 
-// 1. SIDE-BY-SIDE PRODUCT BATTLE MODAL
 export function VersusModal({ selectedProducts, onClose, themeMode }) {
   if (!selectedProducts || selectedProducts.length < 2) return null;
 
@@ -35,7 +35,7 @@ export function VersusModal({ selectedProducts, onClose, themeMode }) {
             </span>
             <div>
               <span className="text-[10px] uppercase tracking-[0.2em] text-cyan-400 font-bold">
-                Khogo AI Battle Arena
+                Khojo AI Battle Arena
               </span>
               <h3 className="font-harmond text-2xl font-bold text-white">
                 Side-by-Side Product Comparison
@@ -51,12 +51,11 @@ export function VersusModal({ selectedProducts, onClose, themeMode }) {
         </div>
 
         <div className="p-5 sm:p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-          {/* AI Verdict Banner */}
           <div className="p-4 rounded-2xl bg-gradient-to-r from-[#D4AF37]/20 via-purple-500/10 to-cyan-400/20 border border-[#D4AF37]/50 flex items-center gap-3">
             <Sparkles className="w-6 h-6 text-[#D4AF37] shrink-0" />
             <div>
               <h4 className="font-harmond text-lg font-bold text-white">
-                AI Value Recommendation
+                Khojo AI Value Recommendation
               </h4>
               <p className="text-xs text-zinc-300">
                 <strong>{cheaper.name}</strong> offers the best pricing at ₹
@@ -67,7 +66,6 @@ export function VersusModal({ selectedProducts, onClose, themeMode }) {
             </div>
           </div>
 
-          {/* 2-Column Comparison Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[p1, p2].map((p, idx) => (
               <div
@@ -97,7 +95,7 @@ export function VersusModal({ selectedProducts, onClose, themeMode }) {
                     ₹{Number(p.price_inr).toLocaleString('en-IN')}
                   </span>
                   <a
-                    href={`https://khogo-ai.onrender.com/api/redirect?name=${encodeURIComponent(
+                    href={`${API_BASE_URL}/api/redirect?name=${encodeURIComponent(
                       p.name || ''
                     )}&brand=${encodeURIComponent(
                       p.brand || ''
@@ -118,7 +116,6 @@ export function VersusModal({ selectedProducts, onClose, themeMode }) {
   );
 }
 
-// 2. SECRET ADMIN PANEL MODAL
 export function AdminPanelModal({ onClose, themeMode }) {
   const [pin, setPin] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
@@ -128,7 +125,7 @@ export function AdminPanelModal({ onClose, themeMode }) {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const res = await fetch('https://khogo-ai.onrender.com/api/reports');
+      const res = await fetch(`${API_BASE_URL}/api/reports`);
       const data = await res.json();
       setReports(data.reports || []);
     } catch (err) {
@@ -147,7 +144,7 @@ export function AdminPanelModal({ onClose, themeMode }) {
   const handleResolve = async (id, action) => {
     try {
       await fetch(
-        `https://khogo-ai.onrender.com/api/admin/resolve-report?report_id=${id}&action=${action}`,
+        `${API_BASE_URL}/api/admin/resolve-report?report_id=${id}&action=${action}`,
         { method: 'POST' }
       );
       fetchReports();
@@ -174,7 +171,7 @@ export function AdminPanelModal({ onClose, themeMode }) {
             </span>
             <div>
               <span className="text-[10px] uppercase tracking-[0.2em] text-[#D4AF37] font-bold">
-                Secret Admin Vault
+                Khojo AI Secret Admin Vault
               </span>
               <h3 className="font-harmond text-2xl font-bold text-white">
                 Database Issue Reports Manager

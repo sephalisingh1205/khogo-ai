@@ -6,7 +6,6 @@ import {
   Sparkles,
   TrendingDown,
   Bell,
-  Tag,
   Layers,
   Sun,
   Moon,
@@ -15,12 +14,11 @@ import {
   Menu,
   X,
   Shield,
-  FileText,
-  Compass,
   Mic,
   Scale,
   Lock
 } from 'lucide-react';
+import { API_BASE_URL } from './config';
 import ProductCard from './components/ProductCard';
 import ChatWidget from './components/ChatWidget';
 import PriceAnalyticsModal from './components/PriceAnalyticsModal';
@@ -42,14 +40,10 @@ const THEME_MODES = [
 ];
 
 export default function App() {
-  // Page Load Splash Animation
   const [booting, setBooting] = useState(true);
-
-  // Page Routing: 'home' | 'wishlist' | 'privacy' | 'terms' | '404'
   const [activePage, setActivePage] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Catalog & Filter States
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,12 +51,10 @@ export default function App() {
   const [sortBy, setSortBy] = useState('featured');
   const [isListening, setIsListening] = useState(false);
 
-  // Theme Mode State
   const [themeMode, setThemeMode] = useState(() => {
-    return localStorage.getItem('khogo_theme') || 'obsidian';
+    return localStorage.getItem('khojo_theme') || 'obsidian';
   });
 
-  // Modal States: Analytics, Fix Reporter, Versus Battle, Secret Admin
   const [activeAnalyticsProduct, setActiveAnalyticsProduct] = useState(null);
   const [reporterTargetProduct, setReporterTargetProduct] = useState(null);
   const [isReporterOpen, setIsReporterOpen] = useState(false);
@@ -70,18 +62,16 @@ export default function App() {
   const [isVersusOpen, setIsVersusOpen] = useState(false);
   const [versusProducts, setVersusProducts] = useState([]);
 
-  // LocalStorage Persisted Wishlist & Price Drop Alerts
   const [wishlist, setWishlist] = useState(() => {
-    const saved = localStorage.getItem('bazaar_wishlist');
+    const saved = localStorage.getItem('khojo_wishlist');
     return saved ? JSON.parse(saved) : [];
   });
 
   const [priceAlerts, setPriceAlerts] = useState(() => {
-    const saved = localStorage.getItem('khogo_price_alerts');
+    const saved = localStorage.getItem('khojo_price_alerts');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Trigger Initial Splash Animation & Check 404 Route
   useEffect(() => {
     const timer = setTimeout(() => setBooting(false), 950);
     const path = window.location.pathname;
@@ -92,15 +82,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('khogo_theme', themeMode);
+    localStorage.setItem('khojo_theme', themeMode);
   }, [themeMode]);
 
   useEffect(() => {
-    localStorage.setItem('bazaar_wishlist', JSON.stringify(wishlist));
+    localStorage.setItem('khojo_wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
   useEffect(() => {
-    localStorage.setItem('khogo_price_alerts', JSON.stringify(priceAlerts));
+    localStorage.setItem('khojo_price_alerts', JSON.stringify(priceAlerts));
   }, [priceAlerts]);
 
   const toggleWishlist = (product) => {
@@ -136,7 +126,6 @@ export default function App() {
     }
   };
 
-  // Native Browser Voice Search (Supports Indian English & Hinglish)
   const startVoiceSearch = () => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -163,7 +152,6 @@ export default function App() {
     recognition.start();
   };
 
-  // Fetch Catalog Products from Render FastAPI Backend
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
@@ -172,9 +160,7 @@ export default function App() {
           selectedCategory === 'All'
             ? ''
             : `?category=${selectedCategory.toLowerCase()}`;
-        const res = await fetch(
-          `https://khogo-ai.onrender.com/api/products${categoryParam}`
-        );
+        const res = await fetch(`${API_BASE_URL}/api/products${categoryParam}`);
         const data = await res.json();
         setProducts(data.products || []);
       } catch (err) {
@@ -186,14 +172,13 @@ export default function App() {
     fetchProducts();
   }, [selectedCategory]);
 
-  // Smart Punctuation-Tolerant & Multi-Word Search Engine
   const displayedProducts = useMemo(() => {
     const baseList = activePage === 'wishlist' ? wishlist : products;
 
     const normalizeText = (str = '') =>
       String(str)
         .toLowerCase()
-        .replace(/\./g, '') // "u.s." -> "us"
+        .replace(/\./g, '')
         .replace(/[^a-z0-9\s]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
@@ -248,7 +233,6 @@ export default function App() {
     ? 'bg-[#141619] text-zinc-100'
     : 'bg-[#070709] text-zinc-100';
 
-  // Luxury Splash Screen Loader
   if (booting) {
     return (
       <div className="fixed inset-0 z-50 bg-[#070709] flex flex-col items-center justify-center p-6 text-center">
@@ -256,13 +240,13 @@ export default function App() {
           <div className="w-full h-full rounded-[22px] overflow-hidden bg-[#070709]">
             <img
               src="/favicon.ico"
-              alt="Khogo AI"
+              alt="Khojo AI"
               className="w-full h-full object-cover"
             />
           </div>
         </div>
         <h1 className="font-harmond text-4xl sm:text-5xl font-bold text-white mt-5 tracking-wide">
-          Khogo{' '}
+          Khojo{' '}
           <span className="italic bg-gradient-to-r from-[#D4AF37] via-purple-400 to-cyan-400 bg-clip-text text-transparent">
             AI
           </span>
@@ -300,14 +284,14 @@ export default function App() {
               <div className="w-full h-full rounded-[14px] overflow-hidden bg-[#070709]">
                 <img
                   src="/favicon.ico"
-                  alt="Khogo AI"
+                  alt="Khojo AI"
                   className="w-full h-full object-cover scale-105"
                 />
               </div>
             </div>
             <div>
               <h1 className="font-harmond text-2xl sm:text-4xl font-bold tracking-wide leading-none">
-                Khogo{' '}
+                Khojo{' '}
                 <span className="italic bg-gradient-to-r from-[#D4AF37] via-purple-400 to-cyan-400 bg-clip-text text-transparent">
                   AI
                 </span>
@@ -320,7 +304,6 @@ export default function App() {
 
           {/* Right Header Controls */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* 3-Mode Theme Switcher (Desktop) */}
             <div
               className={`hidden lg:flex items-center p-1 rounded-xl border ${
                 isLight
@@ -348,7 +331,6 @@ export default function App() {
               })}
             </div>
 
-            {/* Versus Battle Quick Button (Desktop) */}
             <button
               onClick={openVersusBattle}
               className="hidden md:flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[#D4AF37]/40 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-semibold transition-all cursor-pointer"
@@ -358,7 +340,6 @@ export default function App() {
               <span>Versus</span>
             </button>
 
-            {/* Report Fix Button */}
             <button
               onClick={() => openFixReporter(null)}
               className="hidden sm:flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-cyan-400/40 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 text-xs font-semibold transition-all cursor-pointer"
@@ -368,7 +349,6 @@ export default function App() {
               <span>Report Fix</span>
             </button>
 
-            {/* Active Price Drop Alerts Badge */}
             {priceAlerts.length > 0 && (
               <button
                 onClick={() => {
@@ -384,7 +364,6 @@ export default function App() {
               </button>
             )}
 
-            {/* Wishlist Button */}
             <button
               onClick={() =>
                 setActivePage(activePage === 'wishlist' ? 'home' : 'wishlist')
@@ -410,7 +389,6 @@ export default function App() {
               )}
             </button>
 
-            {/* Mobile Hamburger Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2.5 rounded-xl border border-white/15 bg-zinc-900 text-[#D4AF37] cursor-pointer"
@@ -421,7 +399,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Mobile Drawer Menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t border-[#D4AF37]/20 bg-[#0B0B0F] px-4 py-4 space-y-4 animate-fadeIn">
             <div className="grid grid-cols-3 gap-2">
@@ -496,7 +473,6 @@ export default function App() {
         />
       ) : (
         <>
-          {/* Hero Section */}
           {activePage === 'home' && (
             <section
               className={`relative overflow-hidden border-b py-9 sm:py-12 px-4 animate-fadeIn ${
@@ -508,7 +484,7 @@ export default function App() {
               <div className="max-w-4xl mx-auto text-center space-y-4">
                 <span className="inline-flex items-center gap-2 bg-[#D4AF37]/10 border border-[#D4AF37]/40 text-[#D4AF37] text-[10px] sm:text-xs font-semibold px-3.5 py-1.5 rounded-full tracking-widest uppercase">
                   <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                  Harmond Editorial Edition • Voice Search & Versus Battle Mode
+                  Khojo AI • Voice Search, Price Graph & Versus Battle Mode
                 </span>
 
                 <h2 className="font-harmond text-4xl sm:text-6xl font-bold tracking-tight leading-none">
@@ -522,7 +498,6 @@ export default function App() {
                   Compare real-time deals across Amazon India, Flipkart, Myntra & Nykaa with 6-month historical price graphs, voice search, and AI head-to-head product battles.
                 </p>
 
-                {/* Universal Search Bar with Voice Microphone */}
                 <div className="max-w-2xl mx-auto pt-2">
                   <div
                     className={`flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-1 rounded-2xl p-2 sm:p-1.5 border shadow-xl ${
@@ -553,7 +528,6 @@ export default function App() {
                         </button>
                       )}
 
-                      {/* Voice Search Microphone Button */}
                       <button
                         type="button"
                         onClick={startVoiceSearch}
@@ -584,7 +558,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Interactive Quick Feature Pills */}
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
                   {[
                     {
@@ -662,7 +635,6 @@ export default function App() {
               </div>
             ) : (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-                {/* Category Filter Pills */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                   {CATEGORIES.map((cat) => (
                     <button
@@ -681,7 +653,6 @@ export default function App() {
                   ))}
                 </div>
 
-                {/* Sort Dropdown */}
                 <div className="flex items-center justify-end gap-2 text-xs">
                   <SlidersHorizontal className="w-4 h-4 text-[#D4AF37]" />
                   <span className="text-zinc-400">Sort:</span>
@@ -703,7 +674,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Product Cards */}
             {loading && activePage !== 'wishlist' ? (
               <div className="py-24 flex flex-col items-center justify-center text-[#D4AF37] gap-3">
                 <Loader2 className="w-9 h-9 animate-spin" />
@@ -746,7 +716,7 @@ export default function App() {
         </>
       )}
 
-      {/* Footer with Legal, Fix Reporter, 404 & Secret Admin Links */}
+      {/* Footer */}
       <footer
         className={`border-t py-8 px-4 text-xs ${
           isLight
@@ -758,7 +728,7 @@ export default function App() {
           <div className="flex items-center gap-2">
             <img src="/favicon.ico" alt="Logo" className="w-5 h-5 rounded-md" />
             <span className="font-harmond text-lg text-[#D4AF37] font-bold">
-              Khogo AI
+              Khojo AI
             </span>
             <span>© 2026 • India's Luxury AI Shopping & Price Intelligence Hub</span>
           </div>
@@ -816,7 +786,6 @@ export default function App() {
         </div>
       </footer>
 
-      {/* BuyHatke Price Comparison & 6-Month Graph Modal */}
       {activeAnalyticsProduct && (
         <PriceAnalyticsModal
           product={activeAnalyticsProduct}
@@ -827,7 +796,6 @@ export default function App() {
         />
       )}
 
-      {/* Database Issue & Broken Link Fix Reporter Modal */}
       {isReporterOpen && (
         <FixReporterModal
           product={reporterTargetProduct}
@@ -836,7 +804,6 @@ export default function App() {
         />
       )}
 
-      {/* Side-by-Side Versus Product Battle Modal */}
       {isVersusOpen && (
         <VersusModal
           selectedProducts={versusProducts}
@@ -845,7 +812,6 @@ export default function App() {
         />
       )}
 
-      {/* PIN-Protected Secret Admin Panel Modal */}
       {isAdminOpen && (
         <AdminPanelModal
           onClose={() => setIsAdminOpen(false)}
@@ -853,10 +819,8 @@ export default function App() {
         />
       )}
 
-      {/* Cookie Consent Banner */}
       <CookieConsentBanner onOpenPrivacy={() => setActivePage('privacy')} />
 
-      {/* Minimizable / Maximizable AI Concierge */}
       <ChatWidget
         wishlist={wishlist}
         toggleWishlist={toggleWishlist}

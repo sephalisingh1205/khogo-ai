@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Sparkles
 } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 import ProductCard from './ProductCard';
 
 const QUICK_PROMPTS = [
@@ -28,12 +29,11 @@ export default function ChatWidget({
   onOpenReporter,
   themeMode = 'obsidian'
 }) {
-  // Start minimized on small mobile screens so it never blocks the initial view
   const [windowState, setWindowState] = useState(() =>
     typeof window !== 'undefined' && window.innerWidth < 640 ? 'closed' : 'normal'
   );
   const [input, setInput] = useState('');
-  const [websiteHp, setWebsiteHp] = useState(''); // Hidden Honeypot
+  const [websiteHp, setWebsiteHp] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastSentTime, setLastSentTime] = useState(0);
 
@@ -41,7 +41,7 @@ export default function ChatWidget({
     {
       role: 'assistant',
       content:
-        'Namaste! ✨ Welcome to Khogo AI Luxury Concierge. Ask me to compare live prices across Amazon India, Flipkart, Myntra & Nykaa, inspect 6-month price graphs, or find the highest Deal Score steals!',
+        'Namaste! ✨ Welcome to Khojo AI Luxury Concierge. Ask me to compare live prices across Amazon India, Flipkart, Myntra & Nykaa, inspect 6-month price graphs, or find the highest Deal Score steals!',
       products: []
     }
   ]);
@@ -59,7 +59,7 @@ export default function ChatWidget({
       {
         role: 'assistant',
         content:
-          'Chat history cleared! ✨ Tell me what product, brand, or budget you want me to scan across India today.',
+          'Chat history cleared! ✨ Tell me what product, brand, or budget you want Khojo AI to scan across India today.',
         products: []
       }
     ]);
@@ -69,7 +69,6 @@ export default function ChatWidget({
     const query = (textToSend ?? input).trim();
     if (!query || loading) return;
 
-    // Anti-spam 2-second cooldown
     const now = Date.now();
     if (now - lastSentTime < 2000) {
       return;
@@ -87,7 +86,7 @@ export default function ChatWidget({
         content: m.content
       }));
 
-      const res = await fetch('https://khogo-ai.onrender.com/api/chat', {
+      const res = await fetch(`${API_BASE_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -131,7 +130,7 @@ export default function ChatWidget({
           className="bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-cyan-400 text-black px-4 sm:px-5 py-3 sm:py-3.5 rounded-full shadow-2xl shadow-[#D4AF37]/30 flex items-center gap-2 font-bold text-xs sm:text-sm transition-transform hover:scale-105 cursor-pointer border border-white/40"
         >
           <Sparkles className="w-4 h-4" />
-          <span>Khogo AI Concierge</span>
+          <span>Khojo AI Concierge</span>
         </button>
       </div>
     );
@@ -147,7 +146,7 @@ export default function ChatWidget({
           >
             <span className="w-2.5 h-2.5 rounded-full bg-[#D4AF37] animate-ping" />
             <span className="font-harmond text-lg font-bold text-[#D4AF37]">
-              Khogo AI Concierge
+              Khojo AI Concierge
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -180,7 +179,6 @@ export default function ChatWidget({
       }`}
     >
       <div className="w-full h-full bg-[#0B0B0E]/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-[#D4AF37]/40 flex flex-col overflow-hidden text-zinc-100">
-        {/* Header */}
         <div className="bg-gradient-to-r from-[#141419] via-[#221D12] to-[#141419] border-b border-[#D4AF37]/30 px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl overflow-hidden border border-[#D4AF37]/60 shrink-0">
@@ -188,7 +186,7 @@ export default function ChatWidget({
             </div>
             <div>
               <h4 className="font-harmond text-lg sm:text-xl font-bold tracking-wide text-[#F3E5AB] leading-none">
-                Khogo AI Concierge
+                Khojo AI Concierge
               </h4>
               <div className="flex items-center gap-1.5 text-[10px] text-zinc-300 mt-0.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -229,7 +227,6 @@ export default function ChatWidget({
           </div>
         </div>
 
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-3.5 sm:p-4 space-y-4 bg-[#08080B]">
           {messages.map((msg, idx) => (
             <div
@@ -286,13 +283,12 @@ export default function ChatWidget({
           {loading && (
             <div className="flex items-center gap-2 text-xs text-[#D4AF37] pl-2">
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Scanning live prices across India...</span>
+              <span>Khojo AI is scanning live prices across India...</span>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Quick Prompts */}
         <div className="px-3 py-2 bg-[#0E0E12] border-t border-white/10 flex gap-2 overflow-x-auto no-scrollbar">
           {QUICK_PROMPTS.map((prompt) => (
             <button
@@ -305,7 +301,6 @@ export default function ChatWidget({
           ))}
         </div>
 
-        {/* Input Form with Hidden Honeypot */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -326,7 +321,7 @@ export default function ChatWidget({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask to compare prices or find deals..."
+            placeholder="Ask Khojo AI to compare prices or find deals..."
             className="flex-1 text-xs sm:text-sm bg-zinc-900/90 border border-white/10 px-3.5 py-2.5 rounded-xl focus:outline-none focus:border-[#D4AF37] text-white placeholder-zinc-500"
           />
           <button

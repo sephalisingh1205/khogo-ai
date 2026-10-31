@@ -5,7 +5,7 @@ export default function CookieConsentBanner({ onOpenPrivacy }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const consent = localStorage.getItem('khogo_cookie_consent');
+    const consent = localStorage.getItem('khojo_cookie_consent');
     if (!consent) {
       const timer = setTimeout(() => setVisible(true), 1200);
       return () => clearTimeout(timer);
@@ -13,7 +13,7 @@ export default function CookieConsentBanner({ onOpenPrivacy }) {
   }, []);
 
   const handleConsent = (choice) => {
-    localStorage.setItem('khogo_cookie_consent', choice);
+    localStorage.setItem('khojo_cookie_consent', choice);
     setVisible(false);
   };
 
@@ -28,7 +28,7 @@ export default function CookieConsentBanner({ onOpenPrivacy }) {
           </div>
           <div>
             <h4 className="font-harmond text-xl font-bold text-white flex items-center gap-1.5">
-              Luxury Cookie & Privacy Preferences
+              Khojo AI Cookie & Privacy Preferences
             </h4>
             <p className="text-xs text-zinc-400 leading-relaxed mt-1">
               We use local storage & essential cookies to save your Wishlist, Price Alerts, and spam-protection session. Read our{' '}
